@@ -7,31 +7,35 @@ import { useToast } from '../contexts/ToastContext'
 export function ForgotPassword() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
-  const { addToast } = useToast()
+  
+  // CORREÇÃO 1: Usar o hook da mesma forma que no Login
+  const toast = useToast()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
 
     try {
+      // O Supabase exige uma URL completa para redirecionar
+      // Garanta que essa URL está nas configurações de "Redirect URLs" do Supabase
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: 'https://rifa-app-vercel.vercel.app/update-password',
       })
 
       if (error) throw error
 
-      addToast({
-        type: 'success',
-        title: 'Verifique seu e-mail',
-        message: 'Se este e-mail existir, um link de recuperação foi enviado.'
-      })
+      // CORREÇÃO 2: Usar o método .success direto
+      toast.success('Se o e-mail existir, um link foi enviado!')
+      
     } catch (error) {
-      console.error('Erro ao enviar email de recuperação:', error)
-      addToast({
-        type: 'error',
-        title: 'Erro',
-        message: 'Não foi possível enviar o e-mail de recuperação. Tente novamente.'
-      })
+      console.error('Erro ao enviar email:', error)
+      
+      // Tratamento específico para o erro de limite de tempo (Rate Limit)
+      if (error.message.includes('security purposes')) {
+        toast.error('Muitas tentativas. Aguarde 60 segundos.')
+      } else {
+        toast.error('Erro ao enviar e-mail. Tente novamente.')
+      }
     } finally {
       setLoading(false)
     }
@@ -64,26 +68,23 @@ export function ForgotPassword() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-slate-900/50 border border-slate-700/50 text-slate-200 text-sm rounded-lg pl-10 pr-4 py-2.5 outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all group-hover:border-slate-600/50"
+                  className="input-field pl-10"
                   placeholder="seu@email.com"
                   required
                 />
-                <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3 group-focus-within:text-emerald-500 transition-colors" />
+                <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
               </div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full justify-center py-2.5 relative overflow-hidden group"
+              className="btn-primary w-full justify-center py-2.5 relative group"
             >
-              <span className={`flex items-center gap-2 ${loading ? 'opacity-0' : 'opacity-100'}`}>
-                Enviar Link de Recuperação
-              </span>
-              {loading && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                </div>
+              {loading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <span>Enviar Link de Recuperação</span>
               )}
             </button>
           </form>
