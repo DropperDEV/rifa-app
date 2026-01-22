@@ -7,8 +7,6 @@ import { useToast } from '../contexts/ToastContext'
 export function ForgotPassword() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
-  
-  // CORREÇÃO 1: Usar o hook da mesma forma que no Login
   const toast = useToast()
 
   const handleSubmit = async (e) => {
@@ -16,25 +14,26 @@ export function ForgotPassword() {
     setLoading(true)
 
     try {
-      // O Supabase exige uma URL completa para redirecionar
-      // Garanta que essa URL está nas configurações de "Redirect URLs" do Supabase
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: 'https://rifa-app-vercel.vercel.app/update-password',
       })
 
       if (error) throw error
 
-      // CORREÇÃO 2: Usar o método .success direto
       toast.success('Se o e-mail existir, um link foi enviado!')
       
     } catch (error) {
       console.error('Erro ao enviar email:', error)
       
-      // Tratamento específico para o erro de limite de tempo (Rate Limit)
-      if (error.message.includes('security purposes')) {
-        toast.error('Muitas tentativas. Aguarde 60 segundos.')
+      // NOVA LÓGICA DE TRATAMENTO DE ERROS:
+      const msg = error.message.toLowerCase()
+
+      if (msg.includes('rate limit') || msg.includes('security purposes')) {
+        // Erro de "Muitas tentativas" (Supabase Free Tier)
+        toast.error('Muitas tentativas recentes. Aguarde alguns minutos e tente novamente.')
       } else {
-        toast.error('Erro ao enviar e-mail. Tente novamente.')
+        // Outros erros
+        toast.error('Erro ao enviar e-mail. Verifique se o endereço está correto.')
       }
     } finally {
       setLoading(false)
