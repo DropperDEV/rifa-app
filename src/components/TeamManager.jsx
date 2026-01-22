@@ -11,8 +11,11 @@ export function TeamManager({ rifaId }) {
   const [convites, setConvites] = useState([])
   const [loadingTeam, setLoadingTeam] = useState(true)
   
-  // NOVO ESTADO: Guarda o ID do vendedor que será removido para exibir o modal
+  // MUDANÇA 1: Agora guardamos o Objeto inteiro (não só o ID) para mostrar o email no modal
   const [vendedorParaRemover, setVendedorParaRemover] = useState(null)
+  
+  // MUDANÇA 2: Estado para o checkbox de segurança
+  const [confirmacaoSegura, setConfirmacaoSegura] = useState(false)
   
   const toast = useToast()
 
@@ -43,13 +46,23 @@ export function TeamManager({ rifaId }) {
     e.preventDefault()
     if (!email.trim()) return
 
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+
     setLoading(true)
     const emailFormatado = email.toLowerCase().trim()
 
+    if (user?.email?.toLowerCase() === emailFormatado) {
+      toast.error('Você não pode se convidar para a própria equipe.')
+      setLoading(false)
+      return
+    }
+
+    
+
     try {
-      // ---------------------------------------------------------
-      // PASSO 1: Verificar se esse email JÁ foi convidado antes
-      // ---------------------------------------------------------
+      // 1. Verificar se esse email JÁ foi convidado antes
       const { data: conviteExistente } = await supabase
         .from('convites_rifa')
         .select('*')
@@ -64,98 +77,66 @@ export function TeamManager({ rifaId }) {
           setLoading(false)
           return
         }
-        
+      
         if (conviteExistente.status === 'aceito') {
+          const { data: stillVendedor } = await supabase
+            .from('rifa_vendedores')
+            .select('id')
+            .eq('rifa_id', rifaId)
+            .eq('user_id', conviteExistente.user_id)
+            .maybeSingle()
+      
+          if (!stillVendedor) {
+            const { error: updateError } = await supabase
+              .from('convites_rifa')
+              .update({ status: 'pendente', created_at: new Date() })
+              .eq('id', conviteExistente.id)
+      
+            if (updateError) {
+              console.error(updateError)
+              toast.error('Erro ao reenviar convite.')
+            } else {
+              await supabase.auth.signInWithOtp({
+                email: emailFormatado,
+                options: { emailRedirectTo: window.location.origin }
+              })
+              toast.success('Convite reenviado com sucesso!')
+              setEmail('')
+              carregarEquipe()
+            }
+      
+            setLoading(false)
+            return
+          }
+      
           toast.info('Este usuário já aceitou e faz parte da equipe.')
           setLoading(false)
           return
         }
-
+      
         if (conviteExistente.status === 'recusado') {
-          // --- LÓGICA DE REENVIO ---
-          // Se foi recusado, nós atualizamos para 'pendente' novamente (reciclamos o convite)
           const { error: updateError } = await supabase
             .from('convites_rifa')
-            .update({ 
-              status: 'pendente',
-              created_at: new Date() // Atualiza a data para aparecer no topo
-            })
+            .update({ status: 'pendente', created_at: new Date() })
             .eq('id', conviteExistente.id)
-
+      
           if (updateError) {
             console.error(updateError)
             toast.error('Erro ao reenviar convite.')
           } else {
-            // Dispara o email novamente
             await supabase.auth.signInWithOtp({
               email: emailFormatado,
               options: { emailRedirectTo: window.location.origin }
             })
-            
             toast.success('Convite reenviado com sucesso!')
             setEmail('')
             carregarEquipe()
           }
+      
           setLoading(false)
           return
         }
       }
-
-      // ---------------------------------------------------------
-      // PASSO 2: Se não existe registro nenhum, segue o fluxo normal (Novo Convite)
-      // ---------------------------------------------------------
-      
-      // Tenta buscar usuário se já existe no Auth
-      const { data: userId } = await supabase
-        .rpc('buscar_usuario_por_email', { email_busca: emailFormatado })
-      
-      // Se usuário já existe no sistema, verificamos se ele já não está na tabela de vendedores
-      // (Caso tenha sido adicionado manualmente ou por outra via)
-      if (userId) {
-         const { data: jaVendedor } = await supabase
-            .from('rifa_vendedores')
-            .select('id')
-            .eq('rifa_id', rifaId)
-            .eq('user_id', userId)
-            .maybeSingle()
-         
-         if (jaVendedor) {
-            toast.error('Este usuário já é um vendedor ativo.')
-            setLoading(false)
-            return
-         }
-      }
-
-      // Inserir novo convite
-      const { error: inviteError } = await supabase
-        .from('convites_rifa')
-        .insert({ 
-          rifa_id: rifaId, 
-          email_convidado: emailFormatado,
-          user_id: userId || null // Vincula o ID se o usuário já existir
-        })
-      
-      if (inviteError) {
-        console.error(inviteError)
-        toast.error('Erro ao registrar convite')
-        setLoading(false)
-        return
-      }
-
-      // Disparar o Email (Magic Link)
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: emailFormatado,
-        options: { emailRedirectTo: window.location.origin }
-      })
-
-      if (otpError) {
-        toast.error('Convite salvo, mas erro ao enviar e-mail.')
-      } else {
-        toast.success(`Convite enviado para ${emailFormatado}!`)
-        setEmail('')
-        carregarEquipe()
-      }
-
     } catch (err) {
       console.error(err)
       toast.error('Erro inesperado')
@@ -164,31 +145,56 @@ export function TeamManager({ rifaId }) {
     }
   }
   
-  // PASSO 1: Apenas abre o modal (guarda o ID)
-  function solicitarRemocao(id) {
-    setVendedorParaRemover(id)
+  // MUDANÇA 3: Recebe o objeto completo (vendedor) e reseta o checkbox
+  function solicitarRemocao(vendedor) {
+    setVendedorParaRemover(vendedor)
+    setConfirmacaoSegura(false) // Reseta o checkbox sempre que abre
   }
 
-  // PASSO 2: Executa a remoção de fato (chamado pelo botão "Remover" do modal)
   async function confirmarRemocao() {
-    if (!vendedorParaRemover) return
-
-    const { error } = await supabase
+    if (!vendedorParaRemover) return;
+  
+    // 1) remove da tabela de vendedores
+    const { error: delError } = await supabase
       .from('rifa_vendedores')
       .delete()
-      .eq('id', vendedorParaRemover)
-    
-    if (error) {
-      toast.error('Erro ao remover vendedor')
-    } else {
-      toast.success('Vendedor removido')
-      carregarEquipe()
+      .eq('id', vendedorParaRemover.id);
+  
+    if (delError) {
+      toast.error('Erro ao remover vendedor');
+      return;
     }
-    setVendedorParaRemover(null) // Fecha o modal
+  
+    // 2) limpa convites relacionados (por user_id e por email)
+    try {
+      if (vendedorParaRemover.user_id) {
+        await supabase
+        .from('convites_rifa')
+        .delete()
+        .eq('rifa_id', rifaId)
+        .or(
+          `email_convidado.eq.${vendedorParaRemover.email}` +
+          (vendedorParaRemover.user_id
+            ? `,user_id.eq.${vendedorParaRemover.user_id}`
+            : '')
+        );
+      }
+  
+      
+  
+      toast.success('Vendedor removido e convites limpos');
+    } catch (err) {
+      console.error(err);
+      toast.success('Vendedor removido');
+      toast.error('Falha ao limpar alguns convites (ver console).');
+    }
+  
+    setVendedorParaRemover(null);
+    carregarEquipe();
   }
+  
 
   async function cancelarConvite(conviteId) {
-    // Você pode aplicar a mesma lógica de modal aqui se quiser
     const { error } = await supabase
       .from('convites_rifa')
       .delete()
@@ -213,7 +219,6 @@ export function TeamManager({ rifaId }) {
         </div>
       </div>
 
-      {/* Formulário */}
       <form onSubmit={handleConvidar} className="flex gap-2 mb-6">
         <div className="relative flex-1">
           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -237,7 +242,6 @@ export function TeamManager({ rifaId }) {
         </button>
       </form>
 
-      {/* Listas */}
       {loadingTeam ? (
         <div className="flex justify-center py-4">
           <Spinner />
@@ -245,7 +249,6 @@ export function TeamManager({ rifaId }) {
       ) : (
         <div className="space-y-6">
           
-          {/* Vendedores Ativos */}
           {vendedores.length > 0 && (
             <div>
               <h4 className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-3">
@@ -263,9 +266,9 @@ export function TeamManager({ rifaId }) {
                         <p className="text-slate-500 text-xs">Entrou em {new Date(v.created_at).toLocaleDateString()}</p>
                       </div>
                     </div>
-                    {/* Alterado para chamar solicitarRemocao */}
+                    {/* MUDANÇA 4: Passando o objeto 'v' inteiro, não só o ID */}
                     <button
-                      onClick={() => solicitarRemocao(v.id)}
+                      onClick={() => solicitarRemocao(v)}
                       className="text-slate-500 hover:text-rose-500 p-2 transition-colors"
                       title="Remover da equipe"
                     >
@@ -277,7 +280,6 @@ export function TeamManager({ rifaId }) {
             </div>
           )}
 
-          {/* Convites Pendentes */}
           {convites.filter(c => c.status === 'pendente').length > 0 && (
             <div>
               <h4 className="text-xs font-semibold text-yellow-400 uppercase tracking-wider mb-3">
@@ -311,7 +313,7 @@ export function TeamManager({ rifaId }) {
         </div>
       )}
 
-      {/* --- MODAL DE CONFIRMAÇÃO --- */}
+      {/* --- MODAL DE CONFIRMAÇÃO SEGURO --- */}
       {vendedorParaRemover && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200">
@@ -322,12 +324,30 @@ export function TeamManager({ rifaId }) {
               <div>
                 <h3 className="text-lg font-bold text-slate-50 mb-1">Remover Vendedor?</h3>
                 <p className="text-sm text-slate-400">
-                  Esta pessoa perderá o acesso às vendas desta rifa imediatamente.
+                  Você está removendo <span className="text-slate-200 font-semibold">{vendedorParaRemover.email}</span>.
+                </p>
+                <p className="text-sm text-slate-400 mt-1">
+                  Ele perderá acesso imediato a esta rifa.
                 </p>
               </div>
             </div>
+
+            {/* CHECKBOX DE DUPLA PRECAUÇÃO */}
+            <div className="mt-4 mb-6">
+              <label className="flex items-start gap-3 p-3 bg-rose-950/30 border border-rose-500/20 rounded-lg cursor-pointer hover:bg-rose-950/50 transition-colors">
+                <input 
+                  type="checkbox" 
+                  className="mt-0.5 w-4 h-4 rounded border-slate-600 bg-slate-800 text-rose-600 focus:ring-rose-500"
+                  checked={confirmacaoSegura}
+                  onChange={(e) => setConfirmacaoSegura(e.target.checked)}
+                />
+                <span className="text-xs text-rose-200">
+                  Estou ciente de que esta ação é irreversível e desejo remover este vendedor.
+                </span>
+              </label>
+            </div>
             
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="flex justify-end gap-3">
               <button
                 onClick={() => setVendedorParaRemover(null)}
                 className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
@@ -336,7 +356,13 @@ export function TeamManager({ rifaId }) {
               </button>
               <button
                 onClick={confirmarRemocao}
-                className="px-4 py-2 text-sm font-medium bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                disabled={!confirmacaoSegura} // Botão bloqueado
+                className={`
+                  px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2 transition-all
+                  ${confirmacaoSegura 
+                    ? 'bg-rose-600 hover:bg-rose-700 text-white cursor-pointer' 
+                    : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'}
+                `}
               >
                 <Trash2 className="w-4 h-4" />
                 Sim, Remover
