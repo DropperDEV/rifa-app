@@ -96,11 +96,7 @@ export function TeamManager({ rifaId }) {
               console.error(updateError)
               toast.error('Erro ao reenviar convite.')
             } else {
-              await supabase.auth.signInWithOtp({
-                email: emailFormatado,
-                options: { emailRedirectTo: window.location.origin }
-              })
-              toast.success('Convite reenviado com sucesso!')
+              toast.success('Convite reenviado com sucesso! O usuário verá o convite na sua dashboard.')
               setEmail('')
               carregarEquipe()
             }
@@ -124,11 +120,7 @@ export function TeamManager({ rifaId }) {
             console.error(updateError)
             toast.error('Erro ao reenviar convite.')
           } else {
-            await supabase.auth.signInWithOtp({
-              email: emailFormatado,
-              options: { emailRedirectTo: window.location.origin }
-            })
-            toast.success('Convite reenviado com sucesso!')
+            toast.success('Convite reenviado com sucesso! O usuário verá o convite na sua dashboard.')
             setEmail('')
             carregarEquipe()
           }
@@ -137,6 +129,41 @@ export function TeamManager({ rifaId }) {
           return
         }
       }
+
+      // 2. Se não existe convite, criar um novo
+      // Buscar se o usuário já existe no sistema
+      const { data: userId } = await supabase
+        .rpc('buscar_usuario_por_email', { email_busca: emailFormatado })
+
+      // Criar o convite (com ou sem user_id)
+      const conviteData = {
+        rifa_id: rifaId,
+        email_convidado: emailFormatado,
+        status: 'pendente'
+      }
+
+      if (userId) {
+        conviteData.user_id = userId
+      }
+
+      const { error: inviteError } = await supabase
+        .from('convites_rifa')
+        .insert(conviteData)
+
+      if (inviteError) {
+        if (inviteError.code === '23505') {
+          toast.error('Já existe um convite para este email!')
+        } else {
+          toast.error('Erro ao criar convite')
+        }
+        setLoading(false)
+        return
+      }
+
+      // Sucesso - o usuário verá o convite na dashboard quando fizer login
+      toast.success(`Convite criado para ${emailFormatado}! O usuário verá o convite na sua dashboard.`)
+      setEmail('')
+      carregarEquipe()
     } catch (err) {
       console.error(err)
       toast.error('Erro inesperado')

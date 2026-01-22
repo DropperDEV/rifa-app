@@ -1,19 +1,18 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { Ticket, Mail, Lock, Chrome, ArrowRight, UserPlus, LogIn, Sparkles } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Ticket, Mail, Lock, Chrome, UserPlus, LogIn } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { Spinner } from '../components/ui/Spinner'
-import { supabase } from '../supabase' // IMPORTANTE: Importar o supabase
+import { supabase } from '../supabase'
 
 export function LoginPage() {
-  const [loginMode, setLoginMode] = useState('password') 
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   
-  const { signIn, signUp } = useAuth() // Removi signInWithGoogle daqui para usar direto
+  const { signIn, signUp } = useAuth()
   const toast = useToast()
   const navigate = useNavigate()
 
@@ -22,29 +21,21 @@ export function LoginPage() {
     setLoading(true)
 
     try {
-      if (loginMode === 'magic') {
-        const { error } = await supabase.auth.signInWithOtp({
-          email: email.trim(),
-          options: { emailRedirectTo: window.location.origin },
-        })
-        if (error) throw error
-        toast.success(`Link enviado para ${email}! Verifique sua caixa de entrada.`)
-      } else {
-        if (isLogin) {
-          const { error } = await signIn(email, password)
-          if (error) {
-            toast.error(error.message === 'Invalid login credentials' ? 'Email ou senha incorretos' : error.message)
-          } else {
-            toast.success('Login realizado com sucesso!')
-            navigate('/')
-          }
+      if (isLogin) {
+        const { error } = await signIn(email, password)
+        if (error) {
+          toast.error(error.message === 'Invalid login credentials' ? 'Email ou senha incorretos' : error.message)
         } else {
-          const { error } = await signUp(email, password)
-          if (error) {
-            toast.error(error.message)
-          } else {
-            toast.success('Conta criada! Verifique seu email para confirmar.')
-          }
+          toast.success('Login realizado com sucesso!')
+          navigate('/')
+        }
+      } else {
+        const { error } = await signUp(email, password)
+        if (error) {
+          toast.error(error.message)
+        } else {
+          toast.success('Conta criada com sucesso! Você já pode fazer login.')
+          setIsLogin(true) // Volta para o modo de login após criar conta
         }
       }
     } catch (error) {
@@ -89,34 +80,9 @@ export function LoginPage() {
           <h1 className="text-2xl font-bold text-slate-50">RifaOrganizer</h1>
         </div>
 
-        {/* Abas */}
-        <div className="flex p-1 bg-slate-800/50 rounded-lg mb-6">
-          <button
-            type="button"
-            onClick={() => setLoginMode('password')}
-            className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
-              loginMode === 'password' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Com Senha
-          </button>
-          <button
-            type="button"
-            onClick={() => setLoginMode('magic')}
-            className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
-              loginMode === 'magic' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Sem Senha
-          </button>
-        </div>
-
         <div className="text-center mb-6">
           <p className="text-slate-400 text-sm">
-            {loginMode === 'password' 
-              ? (isLogin ? 'Entre na sua conta' : 'Crie sua conta grátis')
-              : 'Receba um link de acesso por e-mail'
-            }
+            {isLogin ? 'Entre na sua conta' : 'Crie sua conta grátis'}
           </p>
         </div>
 
@@ -135,29 +101,19 @@ export function LoginPage() {
             />
           </div>
 
-          {loginMode === 'password' && (
-            <div className="relative animate-in fade-in slide-in-from-top-2">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input
-                type="password"
-                placeholder="Sua senha"
-                className="input-field pl-11"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required={loginMode === 'password'}
-                minLength={6}
-                disabled={loading}
-              />
-            </div>
-          )}
-          
-          {loginMode === 'password' && isLogin && (
-            <div className="flex justify-end">
-              <Link to="/forgot-password" className="text-xs text-slate-400 hover:text-emerald-400 transition-colors">
-                Esqueceu sua senha?
-              </Link>
-            </div>
-          )}
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="password"
+              placeholder="Sua senha"
+              className="input-field pl-11"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              disabled={loading}
+            />
+          </div>
 
           <button
             type="submit"
@@ -166,11 +122,6 @@ export function LoginPage() {
           >
             {loading ? (
               <Spinner size="sm" className="text-white" />
-            ) : loginMode === 'magic' ? (
-              <>
-                <Sparkles className="w-4 h-4" />
-                Enviar Link Mágico
-              </>
             ) : isLogin ? (
               <>
                 <LogIn className="w-4 h-4" />
@@ -203,19 +154,17 @@ export function LoginPage() {
         </button>
 
         {/* Toggle Login/Criar */}
-        {loginMode === 'password' && (
-          <p className="text-center text-slate-400 text-sm mt-6">
-            {isLogin ? 'Não tem conta?' : 'Já tem conta?'}
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-emerald-400 hover:underline ml-1 font-medium"
-              disabled={loading}
-            >
-              {isLogin ? 'Criar agora' : 'Fazer login'}
-            </button>
-          </p>
-        )}
+        <p className="text-center text-slate-400 text-sm mt-6">
+          {isLogin ? 'Não tem conta?' : 'Já tem conta?'}
+          <button
+            type="button"
+            onClick={() => setIsLogin(!isLogin)}
+            className="text-emerald-400 hover:underline ml-1 font-medium"
+            disabled={loading}
+          >
+            {isLogin ? 'Criar agora' : 'Fazer login'}
+          </button>
+        </p>
       </div>
     </div>
   )

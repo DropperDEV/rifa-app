@@ -23,7 +23,17 @@ export function AuthProvider({ children }) {
   }, [])
 
   const signUp = async (email, password) => {
-    const { data, error } = await supabase.auth.signUp({ email, password })
+    // Desabilitar confirmação de email - usuário pode usar imediatamente
+    const { data, error } = await supabase.auth.signUp({ 
+      email, 
+      password,
+      options: {
+        emailRedirectTo: undefined, // Não enviar email de confirmação
+        data: {
+          email_verified: true // Marcar como verificado (requer configuração no Supabase)
+        }
+      }
+    })
     return { data, error }
   }
 

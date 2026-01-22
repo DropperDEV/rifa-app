@@ -5,7 +5,6 @@ import { NovaRifa } from './pages/NovaRifa'
 import { RifaDetalhe } from './pages/RifaDetalhe'
 import { RifaAdmin } from './pages/RifaAdmin'
 import { LoginPage } from './pages/LoginPage'
-import { ForgotPassword } from './pages/ForgotPassword'
 import { UpdatePassword } from './pages/UpdatePassword'
 import { RifaCard } from './components/rifa/RifaCard'
 import { SkeletonCard } from './components/ui/Skeleton'
@@ -329,7 +328,6 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/update-password" element={<UpdatePassword />} />
             <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
             <Route path="/nova" element={<ProtectedRoute><NovaRifa /></ProtectedRoute>} />
