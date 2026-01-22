@@ -1,0 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-primary: 15 23 42; /* slate-900 */
+    --bg-card: 30 41 59; /* slate-800 */
+    --accent: 16 185 129; /* emerald-500 */
+    --danger: 244 63 94; /* rose-500 */
+  }
+  
+  body {
+    @apply bg-slate-900 text-slate-50 antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl;
+  }
+  
+  .btn-primary {
+    @apply bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 
+           text-white font-semibold px-6 py-3 rounded-xl transition-all duration-300 
+           shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:scale-[1.02]
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
+  }
+  
+  .btn-secondary {
+    @apply bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium px-6 py-3 rounded-xl 
+           transition-all duration-200;
+  }
+  
+  .input-field {
+    @apply w-full bg-slate-800/80 border border-slate-600/50 rounded-xl px-4 py-3 
+           text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 
+           focus:ring-emerald-500/50 focus:border-emerald-500 transition-all duration-200;
+  }
+  
+  .number-available {
+    @apply bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 
+           text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 
+           hover:shadow-emerald-500/40 hover:scale-105 transition-all duration-200 cursor-pointer;
+  }
+  
+  .number-sold {
+    @apply bg-gradient-to-br from-rose-500/80 to-rose-600/80 text-white/70 font-bold rounded-xl 
+           cursor-not-allowed opacity-60;
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .animate-pulse-slow {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0; 
+    transform: translateY(10px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
