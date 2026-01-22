@@ -186,7 +186,7 @@ function Home() {
       </section>
 
       {/* Meus Convites Pendentes */}
-      <MeusConvites />
+      <MeusConvites  onUpdate={carregarRifas} />
 
       {/* Minhas Rifas */}
       <section className="max-w-6xl mx-auto px-4 pb-8">
