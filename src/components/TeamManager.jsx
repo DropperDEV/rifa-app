@@ -63,6 +63,7 @@ export function TeamManager({ rifaId }) {
 
     try {
       // 1. Verificar se esse email JÁ foi convidado antes
+      const emailFormatado = email.toLowerCase().trim()
       const { data: conviteExistente } = await supabase
         .from('convites_rifa')
         .select('*')
@@ -130,25 +131,26 @@ export function TeamManager({ rifaId }) {
         }
       }
 
-      // 2. Se não existe convite, criar um novo
-      // Buscar se o usuário já existe no sistema
-      const { data: userId } = await supabase
+      // 2. NOVA VALIDAÇÃO: Buscar se o usuário já existe no sistema
+      const { data: userId, error: rpcError } = await supabase
         .rpc('buscar_usuario_por_email', { email_busca: emailFormatado })
 
-      // Criar o convite (com ou sem user_id)
-      const conviteData = {
-        rifa_id: rifaId,
-        email_convidado: emailFormatado,
-        status: 'pendente'
+      // Se não retornar um ID, o usuário não está cadastrado
+      if (!userId) {
+        toast.error('Este usuário não possui cadastro no sistema. Peça para ele se cadastrar primeiro.')
+        setLoading(false)
+        return
       }
 
-      if (userId) {
-        conviteData.user_id = userId
-      }
-
+      // 3. Se o usuário existe, criar o convite vinculado ao ID dele
       const { error: inviteError } = await supabase
         .from('convites_rifa')
-        .insert(conviteData)
+        .insert({
+          rifa_id: rifaId,
+          email_convidado: emailFormatado,
+          user_id: userId, // Agora garantimos que o ID existe
+          status: 'pendente'
+        })
 
       if (inviteError) {
         if (inviteError.code === '23505') {
@@ -156,12 +158,10 @@ export function TeamManager({ rifaId }) {
         } else {
           toast.error('Erro ao criar convite')
         }
-        setLoading(false)
         return
       }
 
-      // Sucesso - o usuário verá o convite na dashboard quando fizer login
-      toast.success(`Convite criado para ${emailFormatado}! O usuário verá o convite na sua dashboard.`)
+      toast.success(`Convite enviado! O usuário já pode aceitá-lo na dashboard.`)
       setEmail('')
       carregarEquipe()
     } catch (err) {
