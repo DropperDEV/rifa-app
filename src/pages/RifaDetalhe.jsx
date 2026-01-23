@@ -148,64 +148,75 @@ export function RifaDetalhe() {
         ) : (
           <>
             {/* Info da Rifa */}
-            <div className="glass-card p-6 mb-8">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-slate-50 mb-2">{rifa.titulo}</h1>
-                  {rifa.descricao && (
-                    <p className="text-slate-400">{rifa.descricao}</p>
-                  )}
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-slate-400">Valor por número</p>
-                  <p className="text-3xl font-bold text-emerald-400">
-                    R$ {Number(rifa.valor_numero).toFixed(2)}
-                  </p>
-                </div>
-              </div>
+<div className="glass-card p-6 mb-8">
+  <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 mb-6">
+    <div>
+      <h1 className="text-2xl font-bold text-slate-50 mb-2">
+        {rifa.titulo}
+      </h1>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {rifa.premio && (
-                  <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-xl">
-                    <Gift className="w-5 h-5 text-yellow-500" />
-                    <div>
-                      <p className="text-xs text-slate-400">Prêmio</p>
-                      <p className="text-slate-200 font-medium">{rifa.premio}</p>
-                    </div>
-                  </div>
-                )}
-                {rifa.data_sorteio && (
-                  <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-xl">
-                    <Calendar className="w-5 h-5 text-blue-400" />
-                    <div>
-                      <p className="text-xs text-slate-400">Sorteio</p>
-                      <p className="text-slate-200 font-medium">
-                        {new Date(rifa.data_sorteio).toLocaleDateString('pt-BR')}
-                      </p>
-                    </div>
-                  </div>
-                )}
-                <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-xl">
-                  <Users className="w-5 h-5 text-emerald-400" />
-                  <div>
-                    <p className="text-xs text-slate-400">Vendidos</p>
-                    <p className="text-slate-200 font-medium">
-                      {vendidos.length} de {rifa.qtd_numeros} ({progresso}%)
-                    </p>
-                  </div>
-                </div>
-              </div>
+      {rifa.descricao && (
+        <p className="text-slate-400 max-w-2xl break-words">
+        {rifa.descricao}
+      </p>
+      )}
+    </div>
 
-              {/* Progress Bar */}
-              <div className="mt-4">
-                <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500"
-                    style={{ width: `${progresso}%` }}
-                  />
-                </div>
-              </div>
-            </div>
+    <div className="text-left lg:text-right">
+    <p className="text-sm text-slate-400">Valor por número</p>
+    <p className="text-3xl font-bold text-emerald-400 whitespace-nowrap">
+      R$ {Number(rifa.valor_numero).toFixed(2)}
+    </p>
+  </div>
+  </div>
+
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    {rifa.premio && (
+      <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-xl min-h-[72px]">
+        <Gift className="w-5 h-5 text-yellow-500" />
+        <div>
+          <p className="text-xs text-slate-400">Prêmio</p>
+          <p className="text-slate-200 font-medium">
+            {rifa.premio}
+          </p>
+        </div>
+      </div>
+    )}
+
+    {rifa.data_sorteio && (
+      <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-xl min-h-[72px]">
+        <Calendar className="w-5 h-5 text-blue-400" />
+        <div>
+          <p className="text-xs text-slate-400">Sorteio</p>
+          <p className="text-slate-200 font-medium">
+            {new Date(rifa.data_sorteio).toLocaleDateString('pt-BR')}
+          </p>
+        </div>
+      </div>
+    )}
+
+    <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-xl">
+      <Users className="w-5 h-5 text-emerald-400" />
+      <div>
+        <p className="text-xs text-slate-400">Vendidos</p>
+        <p className="text-slate-200 font-medium">
+          {vendidos.length} de {rifa.qtd_numeros} ({progresso}%)
+        </p>
+      </div>
+    </div>
+  </div>
+
+  {/* Barra de Progresso */}
+  <div className="mt-6">
+    <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+      <div
+        className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all"
+        style={{ width: `${progresso}%` }}
+      />
+    </div>
+  </div>
+</div>
+
 
             {/* Legenda */}
             <div className="flex items-center gap-6 mb-6">
