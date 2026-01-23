@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { Lock, Ticket, Save, Loader2 } from 'lucide-react'
 import { useToast } from '../contexts/ToastContext'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export function UpdatePassword() {
+  usePageTitle('Atualizar Senha')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   

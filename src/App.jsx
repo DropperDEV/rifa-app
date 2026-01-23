@@ -13,8 +13,10 @@ import { ToastProvider, useToast } from './contexts/ToastContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { supabase } from './supabase'
+import { usePageTitle } from './hooks/usePageTitle'
 
 function Home() {
+  usePageTitle('Dashboard')
   const { user, signOut } = useAuth()
   const toast = useToast()
   const [minhasRifas, setMinhasRifas] = useState([])

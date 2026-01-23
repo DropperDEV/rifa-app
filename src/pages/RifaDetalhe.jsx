@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { GridNumeros } from '../components/rifa/GridNumeros'
 import { ModalCompra } from '../components/rifa/ModalCompra'
 import { SkeletonGrid, Skeleton } from '../components/ui/Skeleton'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export function RifaDetalhe() {
   const { id } = useParams()
@@ -47,6 +48,13 @@ export function RifaDetalhe() {
     setVendidos(b?.map(x => x.numero) || [])
     setLoading(false)
   }
+
+  // Atualizar título quando a rifa for carregada
+  useEffect(() => {
+    if (rifa?.titulo) {
+      document.title = `${rifa.titulo} - RifaOrganizer`
+    }
+  }, [rifa])
 
   async function handleConfirmarVenda({ comprador, contato, arquivo }) {
     setIsSubmitting(true)

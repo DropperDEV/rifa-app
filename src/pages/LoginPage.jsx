@@ -5,8 +5,10 @@ import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { Spinner } from '../components/ui/Spinner'
 import { supabase } from '../supabase'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export function LoginPage() {
+  usePageTitle('Login')
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

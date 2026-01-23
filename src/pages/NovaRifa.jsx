@@ -5,8 +5,10 @@ import { supabase } from '../supabase'
 import { useToast } from '../contexts/ToastContext'
 import { useAuth } from '../contexts/AuthContext'
 import { Spinner } from '../components/ui/Spinner'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export function NovaRifa() {
+  usePageTitle('Nova Rifa')
   const { user } = useAuth()
   const [form, setForm] = useState({ 
     titulo: '', 
