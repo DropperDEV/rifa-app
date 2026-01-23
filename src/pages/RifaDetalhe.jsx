@@ -89,6 +89,7 @@ export function RifaDetalhe() {
         }
       } else {
         toast.success(`Número ${numeroSelecionado} comprado com sucesso!`)
+        setVendidos(prev => [...prev, numeroSelecionado]);
         setModalOpen(false)
       }
     } catch (err) {
