@@ -415,11 +415,9 @@ export function RifaAdmin() {
             </div>
 
             {/* Team Manager - Apenas para o Dono */}
-            {isOwner && (
-              <div className="mb-8">
-                <TeamManager rifaId={id} />
-              </div>
-            )}
+            <div className="mb-8">
+              <TeamManager rifaId={id} />
+            </div>
 
             {/* Tabela de Vendas */}
             <div className="glass-card overflow-hidden">
