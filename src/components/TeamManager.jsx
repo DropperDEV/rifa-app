@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { UserPlus, Users, Mail, Trash2, Clock, Check, AlertTriangle, X, Shield, ShieldCheck, UserCheck } from 'lucide-react'
+import { UserPlus, Users, Mail, Trash2, Clock, Check, AlertTriangle, X, Shield, ShieldCheck, UserCheck, ChevronDown } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useToast } from '../contexts/ToastContext'
 import { useAuth } from '../contexts/AuthContext' // Importando Auth
@@ -15,6 +15,7 @@ export function TeamManager({ rifaId }) {
 
   // MUDANÇA 1: Agora guardamos o Objeto inteiro (não só o ID) para mostrar o email no modal
   const [vendedorParaRemover, setVendedorParaRemover] = useState(null)
+  const [cargoConvite, setCargoConvite] = useState('vendedor')
 
   // MUDANÇA 2: Estado para o checkbox de segurança
   const [confirmacaoSegura, setConfirmacaoSegura] = useState(false)
@@ -32,7 +33,6 @@ export function TeamManager({ rifaId }) {
     }
   }, [rifaId, user?.id])
   async function carregarEquipe() {
-    console.log("DEBUG: Iniciando carregarEquipe...", { rifaId, user: user?.id });
     setLoadingTeam(true);
 
     try {
@@ -65,10 +65,8 @@ export function TeamManager({ rifaId }) {
         const euNaLista = equipeCompleta?.find(v => v.user_id === user.id);
         
         if (euNaLista) {
-          console.log("DEBUG: Achei meu usuário na lista. Cargo:", euNaLista.cargo);
           setMeuCargo(euNaLista.cargo);
         } else {
-          console.log("DEBUG: Não estou na lista. Sou Dono?", souDono);
           setMeuCargo(souDono ? 'dono' : 'visitante');
         }
         
@@ -143,7 +141,7 @@ export function TeamManager({ rifaId }) {
           if (!stillVendedor) {
             const { error: updateError } = await supabase
               .from('convites_rifa')
-              .update({ status: 'pendente', created_at: new Date() })
+              .update({ status: 'pendente', created_at: new Date(),cargo: isDono ? cargoConvite : 'vendedor' })
               .eq('id', conviteExistente.id)
 
             if (updateError) {
@@ -167,7 +165,7 @@ export function TeamManager({ rifaId }) {
         if (conviteExistente.status === 'recusado') {
           const { error: updateError } = await supabase
             .from('convites_rifa')
-            .update({ status: 'pendente', created_at: new Date() })
+            .update({ status: 'pendente', created_at: new Date(),cargo: isDono ? cargoConvite : 'vendedor' })
             .eq('id', conviteExistente.id)
 
           if (updateError) {
@@ -194,7 +192,6 @@ export function TeamManager({ rifaId }) {
         setLoading(false)
         return
       }
-      console.log(userId, donoId)
       // --- BLOQUEIO NOVO: IMPEDIR CONVITE AO DONO ---
       if (userId === donoId) {
         toast.error('Você não pode convidar o Dono da rifa para ser vendedor!')
@@ -209,7 +206,8 @@ export function TeamManager({ rifaId }) {
           rifa_id: rifaId,
           email_convidado: emailFormatado,
           user_id: userId, // Agora garantimos que o ID existe
-          status: 'pendente'
+          status: 'pendente',
+          cargo: isDono ? cargoConvite : 'vendedor'
         })
 
       if (inviteError) {
@@ -257,7 +255,6 @@ export function TeamManager({ rifaId }) {
 
   async function confirmarRemocao() {
     if (!vendedorParaRemover) return;
-    console.log("Tentando remover ID da relação:", vendedorParaRemover.id);
     // 1) remove da tabela de vendedores
     const { error: delError } = await supabase
       .from('rifa_vendedores')
@@ -312,11 +309,6 @@ export function TeamManager({ rifaId }) {
   }
 
   const podeConvidar = isDono || meuCargo === 'gestor'
-  console.log("DEBUG PERMISSÕES:", {
-    cargo: meuCargo,
-    souDono: isDono,
-    podeConvidar
-  })
   return (
     <div className="glass-card p-6 mt-6">
       <div className="flex items-center gap-3 mb-6">
@@ -343,6 +335,22 @@ export function TeamManager({ rifaId }) {
               disabled={loading}
             />
           </div>
+
+          {isDono && (
+            <div className="relative w-full sm:w-40">
+              <select
+                value={cargoConvite}
+                onChange={(e) => setCargoConvite(e.target.value)}
+                className="w-full h-full appearance-none bg-slate-900/50 border border-slate-700 text-slate-200 rounded-lg pl-4 pr-10 py-2 outline-none focus:border-emerald-500 cursor-pointer"
+                disabled={loading}
+              >
+                <option value="vendedor">Vendedor</option>
+                <option value="gestor">Gestor</option>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            </div>
+          )}
+
           <button
             type="submit"
             className="btn-primary flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50"
@@ -432,6 +440,7 @@ export function TeamManager({ rifaId }) {
                     <div className="flex items-center gap-3">
                       <Clock className="w-4 h-4 text-yellow-500" />
                       <span className="text-slate-300 text-sm">{c.email_convidado}</span>
+                      {c.cargo && <span className="text-xs text-slate-500">Convite para: {c.cargo}</span>}
                     </div>
                     <button
                       onClick={() => cancelarConvite(c.id)}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Mail, Check, X, Ticket, Loader2, User } from 'lucide-react'
+import { Mail, Check, X, Ticket, Loader2, User, Briefcase, Shield } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useToast } from '../contexts/ToastContext'
 import { useAuth } from '../contexts/AuthContext'
@@ -22,6 +22,7 @@ export function MeusConvites({ onUpdate }) {
     try {
       const { data, error } = await supabase.rpc('get_meus_convites_pendentes')
       if (error) throw error
+      //console.log(data)
       setConvites(data || [])
     } catch (error) {
       console.error('Erro:', error)
@@ -34,11 +35,16 @@ export function MeusConvites({ onUpdate }) {
   async function aceitarConvite(conviteId) {
     setProcessando(conviteId)
     try {
-      const { error } = await supabase.rpc('aceitar_convite_vendedor', { 
+      const { data, error } = await supabase.rpc('aceitar_convite_vendedor', { 
         p_convite_id: conviteId 
       })
 
       if (error) throw error
+
+      if (data && data.success === false) {
+      toast.error(data.message)
+      return
+    }
 
       toast.success('Convite aceito! Você entrou para a equipe.')
       
@@ -98,8 +104,18 @@ export function MeusConvites({ onUpdate }) {
       </h3>
       
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {convites.map(convite => (
+        {convites.map(convite => {
+          //console.log(convite)
+          const isGestor = convite.cargo === 'gestor'
+          return (
           <div key={convite.convite_id} className="glass-card p-5 border-l-4 border-l-yellow-500/50 hover:border-l-yellow-500 transition-colors">
+            
+            {isGestor && (
+                <div className="absolute top-0 right-0 bg-purple-500/20 text-purple-300 text-[10px] uppercase font-bold px-2 py-1 rounded-bl-lg border-l border-b border-purple-500/30 flex items-center gap-1">
+                  <Shield className="w-3 h-3" /> Gestor
+                </div>
+              )}
+
             <div className="flex items-start gap-3 mb-4">
               <div className="p-2 bg-yellow-500/20 rounded-lg shrink-0">
                 <Ticket className="w-5 h-5 text-yellow-400" />
@@ -111,9 +127,16 @@ export function MeusConvites({ onUpdate }) {
                 <div className="flex items-center gap-1.5 p-1.5 bg-slate-800/50 rounded-md w-fit">
                   <User className="w-3 h-3 text-slate-400" />
                   <span className="text-xs text-slate-300 truncate max-w-[150px]">{convite.dono_email}</span>
+                  <div className="flex items-center gap-1.5">
+                       {isGestor ? <Shield className="w-3 h-3 text-purple-400" /> : <Briefcase className="w-3 h-3 text-emerald-400" />}
+                       <span className={`text-xs ${isGestor ? 'text-purple-400' : 'text-emerald-400'}`}>
+                         Convite para: {isGestor ? 'Gestor' : 'Vendedor'}
+                       </span>
+                    </div>
                 </div>
               </div>
             </div>
+
             <div className="flex gap-2">
               <button
                 onClick={() => aceitarConvite(convite.convite_id)}
@@ -131,7 +154,8 @@ export function MeusConvites({ onUpdate }) {
               </button>
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
     </section>
   )
